@@ -6,16 +6,18 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder -wl",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
   },
   "dependencies": {
-    "archiver": "^7.0.1",
-    "electron-log": "^5.2.0",
-    "electron-updater": "^6.3.9"
+    "archiver": "^8.0.0",
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.11"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
   },
   "repository": {
     "type": "git",
@@ -40,6 +42,10 @@
         {
           "target": "nsis",
           "arch": ["x64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["x64"]
         }
       ]
     },
@@ -48,6 +54,15 @@
       "allowToChangeInstallationDirectory": false,
       "include": "build/install.nsh",
       "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "zip"
+      ],
+      "category": "Development",
+      "artifactName": "${productName}-${version}.${ext}"
     },
     "directories": {
       "output": "dist"

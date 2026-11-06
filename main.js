@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const archiver = require('archiver');
+const archiverCreate = archiver.default || archiver;
 const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
 
@@ -108,7 +109,7 @@ ipcMain.handle('export-zip', async (event, { projectPath, selectedItems }) => {
     const outputPath = path.join(downloadsPath, zipName);
 
     const output = fs.createWriteStream(outputPath);
-    const archive = archiver('zip', { zlib: { level: 9 } });
+    const archive = archiverCreate('zip', { zlib: { level: 9 } }); // <--- AQUÍ
 
     return new Promise((resolve, reject) => {
       output.on('close', async () => {
