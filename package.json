@@ -6,9 +6,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder -wl",
-    "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+    "dist:clean": "node -e \"const fs = require('fs'); fs.rmSync('dist', { recursive: true, force: true });\"",
+    "dist": "npm run dist:clean && electron-builder -wl",
+    "dist:win": "npm run dist:clean && electron-builder --win",
+    "dist:linux": "npm run dist:clean && electron-builder --linux"
   },
   "dependencies": {
     "archiver": "^8.0.0",
@@ -40,6 +41,10 @@
     "win": {
       "target": [
         {
+          "target": "nsis-web",
+          "arch": ["x64"]
+        },
+        {
           "target": "nsis",
           "arch": ["x64"]
         },
@@ -54,7 +59,14 @@
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
-      "include": "build/install.nsh"
+      "include": "build/install.nsh",
+      "artifactName": "Unity-Project-Exporter_${version}_SetupOffline.${ext}"
+    },
+    "nsisWeb": {
+      "oneClick": true,
+      "perMachine": false,
+      "include": "build/install.nsh",
+      "artifactName": "Unity-Project-Exporter_${version}_Setup.${ext}"
     },
     "linux": {
       "target": [
