@@ -40,6 +40,10 @@
     "win": {
       "target": [
         {
+          "target": "web-nsis",
+          "arch": ["x64"]
+        },
+        {
           "target": "nsis",
           "arch": ["x64"]
         },
@@ -50,8 +54,15 @@
       ]
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": false,
+      "include": "build/install.nsh",
+      "artifactName": "${productName}-${version}-SetupOffline.${ext}"
+    },
+    "webNsis": {
+      "oneClick": true,
+      "perMachine": false,
       "include": "build/install.nsh",
       "artifactName": "${productName}-${version}-Setup.${ext}"
     },
