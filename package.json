@@ -40,10 +40,6 @@
     "win": {
       "target": [
         {
-          "target": "web-nsis",
-          "arch": ["x64"]
-        },
-        {
           "target": "nsis",
           "arch": ["x64"]
         },
@@ -51,20 +47,14 @@
           "target": "zip",
           "arch": ["x64"]
         }
-      ]
+      ],
+      "artifactName": "Unity-Project-Exporter_${version}.${ext}"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
-      "include": "build/install.nsh",
-      "artifactName": "${productName}-${version}-SetupOffline.${ext}"
-    },
-    "webNsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "include": "build/install.nsh",
-      "artifactName": "${productName}-${version}-Setup.${ext}"
+      "include": "build/install.nsh"
     },
     "linux": {
       "target": [
@@ -73,7 +63,7 @@
         "zip"
       ],
       "category": "Development",
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "Unity-Project-Exporter_${version}.${ext}"
     },
     "directories": {
       "output": "dist"
