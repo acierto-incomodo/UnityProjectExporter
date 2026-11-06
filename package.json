@@ -2,6 +2,7 @@
   "name": "unity-project-exporter",
   "version": "1.0.0",
   "description": "Exportador de proyectos Unity a ZIP",
+  "author": "StormGamesStudios <meliodas.aitor@gmail.com>",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -16,12 +17,38 @@
     "electron": "^33.0.0",
     "electron-builder": "^25.1.8"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/acierto-incomodo/UnityProjectExporter.git"
+  },
   "build": {
-    "appId": "com.unityexporter.app",
-    "productName": "UnityExporter",
+    "appId": "com.stormgamesstudios.unityexporter",
+    "productName": "Unity Project Exporter",
+    "copyright": "Copyright © 2026 StormGamesStudios",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "acierto-incomodo",
+        "repo": "UnityProjectExporter"
+      }
+    ],
     "files": [
       "**/*"
     ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "include": "build/install.nsh",
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
     "directories": {
       "output": "dist"
     }

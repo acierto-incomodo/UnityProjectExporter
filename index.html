@@ -32,7 +32,7 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     }
 
-    h2 {
+    h2, h3 {
       margin-top: 0;
       color: var(--accent);
     }
@@ -58,6 +58,12 @@
       cursor: not-allowed;
     }
 
+    .btn-secondary {
+      background-color: #45475a;
+      color: var(--text);
+      margin-left: 10px;
+    }
+
     .path-display {
       margin: 15px 0;
       padding: 10px;
@@ -70,7 +76,7 @@
 
     .checklist-container {
       margin-top: 20px;
-      max-height: 280px;
+      max-height: 220px;
       overflow-y: auto;
       border: 1px solid #45475a;
       border-radius: 6px;
@@ -113,16 +119,53 @@
       color: var(--text-dim);
     }
 
-    #status {
+    #status, #updateStatus {
       margin-top: 15px;
       font-weight: bold;
+      font-size: 13px;
+    }
+
+    .update-box {
+      margin-top: 25px;
+      padding: 12px;
+      background: #181825;
+      border-radius: 6px;
+      border: 1px dashed #45475a;
+    }
+
+    .versions-container {
+      margin-top: 10px;
+      display: none;
+      max-height: 150px;
+      overflow-y: auto;
+      background: #11111b;
+      padding: 8px;
+      border-radius: 6px;
+    }
+
+    .version-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid #2b2b3b;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Unity Exporter</h2>
-    <button id="btnSelect">Seleccionar Proyecto Unity</button>
+    <h2>Unity Project Exporter</h2>
+    <div>
+      <button id="btnSelect">Seleccionar Proyecto Unity</button>
+      <button id="btnToggleVersions" class="btn-secondary">Versiones Anteriores</button>
+    </div>
+
+    <!-- Panel de versiones anteriores -->
+    <div id="versionsPanel" class="versions-container">
+      <div id="versionsList">Cargando versiones...</div>
+    </div>
+
     <div id="pathDisplay" class="path-display">Ningún proyecto seleccionado</div>
 
     <div id="checklistWrapper" style="display: none;">
@@ -133,6 +176,13 @@
     </div>
 
     <div id="status"></div>
+
+    <!-- Sección inferior de actualizaciones -->
+    <div class="update-box">
+      <div id="updateStatus">Buscando actualizaciones en GitHub...</div>
+      <br>
+      <button id="btnRestart" style="display: none;">Reiniciar y Aplicar Actualización</button>
+    </div>
   </div>
 
   <script>
@@ -145,11 +195,16 @@
     const checklistWrapper = document.getElementById('checklistWrapper');
     const checklist = document.getElementById('checklist');
     const status = document.getElementById('status');
+    
+    const updateStatus = document.getElementById('updateStatus');
+    const btnRestart = document.getElementById('btnRestart');
+    const btnToggleVersions = document.getElementById('btnToggleVersions');
+    const versionsPanel = document.getElementById('versionsPanel');
+    const versionsList = document.getElementById('versionsList');
 
     btnSelect.addEventListener('click', async () => {
       status.textContent = '';
       const data = await window.electronAPI.selectFolder();
-      
       if (!data) return;
 
       currentProjectPath = data.projectPath;
@@ -162,7 +217,6 @@
 
     function renderChecklist() {
       checklist.innerHTML = '';
-
       projectItems.forEach(item => {
         const div = document.createElement('div');
         div.className = 'check-item';
@@ -171,11 +225,7 @@
         checkbox.type = 'checkbox';
         checkbox.value = item.name;
         checkbox.checked = item.defaultChecked;
-        
-        // Si es obligatorio, bloquear para que no se desactive
-        if (item.required) {
-          checkbox.disabled = true;
-        }
+        if (item.required) checkbox.disabled = true;
 
         const label = document.createElement('label');
         label.textContent = item.name + (item.isDirectory ? '/' : '');
@@ -196,7 +246,6 @@
       status.style.color = 'var(--accent)';
       status.textContent = 'Comprimiendo proyecto y guardando en Descargas...';
 
-      // Obtener todos los elementos marcados (incluyendo los deshabilitados requeridos)
       const checkboxes = checklist.querySelectorAll('input[type="checkbox"]:checked');
       const selectedItems = Array.from(checkboxes).map(cb => cb.value);
 
@@ -215,6 +264,54 @@
         status.textContent = 'Error al exportar: ' + err.message;
       } finally {
         btnExport.disabled = false;
+      }
+    });
+
+    // Escuchar eventos de actualización desde el main process
+    window.electronAPI.onUpdateStatus((data) => {
+      updateStatus.textContent = data.message;
+      if (data.status === 'downloaded') {
+        btnRestart.style.display = 'inline-block';
+      }
+    });
+
+    btnRestart.addEventListener('click', () => {
+      window.electronAPI.restartApp();
+    });
+
+    // Desplegar versiones anteriores
+    let versionsLoaded = false;
+    btnToggleVersions.addEventListener('click', async () => {
+      if (versionsPanel.style.display === 'block') {
+        versionsPanel.style.display = 'none';
+        return;
+      }
+
+      versionsPanel.style.display = 'block';
+      if (!versionsLoaded) {
+        versionsList.textContent = 'Cargando versiones desde GitHub...';
+        const versions = await window.electronAPI.getVersions();
+        versionsList.innerHTML = '';
+
+        if (versions.length === 0) {
+          versionsList.textContent = 'No se encontraron versiones anteriores.';
+        } else {
+          versions.forEach(v => {
+            const row = document.createElement('div');
+            row.className = 'version-row';
+            row.innerHTML = `<span>v${v.version}</span>`;
+            
+            const dlBtn = document.createElement('button');
+            dlBtn.textContent = 'Descargar';
+            dlBtn.style.padding = '2px 8px';
+            dlBtn.style.fontSize = '12px';
+            dlBtn.onclick = () => window.electronAPI.openExternalUrl(v.url);
+
+            row.appendChild(dlBtn);
+            versionsList.appendChild(row);
+          });
+          versionsLoaded = true;
+        }
       }
     });
   </script>

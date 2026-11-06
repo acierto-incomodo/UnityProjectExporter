@@ -2,4 +2,6 @@ unity-exporter/
 ├── package.json
 ├── main.js
 ├── preload.js
-└── index.html
+├── index.html
+└── build/
+    └── install.nsh
