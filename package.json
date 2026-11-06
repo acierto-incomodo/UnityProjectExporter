@@ -1,0 +1,29 @@
+{
+  "name": "unity-project-exporter",
+  "version": "1.0.0",
+  "description": "Exportador de proyectos Unity a ZIP",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "electron-log": "^5.2.0",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.unityexporter.app",
+    "productName": "UnityExporter",
+    "files": [
+      "**/*"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  }
+}
