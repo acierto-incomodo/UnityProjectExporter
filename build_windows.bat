@@ -9,7 +9,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Compilando ejecutable con PyInstaller...
-pyinstaller --noconsole --onefile --name "UnityZipExporter" exportador_unity.py
+PyInstaller --noconsole --onefile --name "UnityZipExporter" exportador_unity.py
 if %errorlevel% neq 0 (
     echo Error al compilar con PyInstaller.
     pause

@@ -6,7 +6,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "`nCompilando ejecutable con PyInstaller..." -ForegroundColor Cyan
-pyinstaller --noconsole --onefile --name "UnityZipExporter" exportador_unity.py
+PyInstaller --noconsole --onefile --name "UnityZipExporter" exportador_unity.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Error al compilar con PyInstaller." -ForegroundColor Red
     exit $LASTEXITCODE
