@@ -13,8 +13,8 @@ class UnityZipExporterApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Unity Project Zip Exporter")
-        self.root.geometry("600x650")
-        self.root.minsize(550, 600)
+        self.root.geometry("600x600")
+        self.root.minsize(550, 550)
 
         # Variables de estado
         self.proyecto_path = tk.StringVar()
@@ -60,18 +60,6 @@ class UnityZipExporterApp:
         # Cargar estado inicial (solo obligatorios)
         self.cargar_checklist_base()
 
-        # --- MARCO AÑADIR PERSONALIZADOS ---
-        frame_add = ttk.Frame(self.frame_checklist)
-        frame_add.pack(fill="x", pady=(10, 0))
-
-        ttk.Label(frame_add, text="Extra:").pack(side="left", padx=(0, 5))
-
-        self.txt_custom = ttk.Entry(frame_add)
-        self.txt_custom.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        
-        btn_add = ttk.Button(frame_add, text="Añadir extra", command=lambda: self.agregar_item_personalizado())
-        btn_add.pack(side="right")
-
         # --- MARCO INFERIOR: Nombre y Exportación ---
         frame_bottom = ttk.LabelFrame(self.root, text=" 3. Configuración y Exportación ", padding=15)
         frame_bottom.pack(fill="x", padx=15, pady=10)
@@ -98,7 +86,7 @@ class UnityZipExporterApp:
 
         for item in ELEMENTOS_OBLIGATORIOS:
             var = tk.BooleanVar(value=True)
-            self.checks_vars[item] = {"var": var, "custom": False}
+            self.checks_vars[item] = {"var": var}
             chk = ttk.Checkbutton(self.scrollable_frame, text=f"{item} (Obligatorio)", variable=var, state="disabled")
             chk.pack(anchor="w", pady=2)
 
@@ -130,14 +118,14 @@ class UnityZipExporterApp:
             # 1. Renderizar primero las carpetas detectadas
             for item in carpetas:
                 var = tk.BooleanVar(value=False)
-                self.checks_vars[item] = {"var": var, "custom": False}
+                self.checks_vars[item] = {"var": var}
                 chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
                 chk.pack(anchor="w", pady=2)
 
             # 2. Renderizar después los archivos detectados
             for item in archivos:
                 var = tk.BooleanVar(value=False)
-                self.checks_vars[item] = {"var": var, "custom": False}
+                self.checks_vars[item] = {"var": var}
                 chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
                 chk.pack(anchor="w", pady=2)
 
@@ -157,35 +145,6 @@ class UnityZipExporterApp:
                 self.nombre_zip_var.set(f"{nombre_carpeta}_export")
 
             self.actualizar_checklist_desde_proyecto(dir_selected)
-
-    def agregar_item_personalizado(self):
-        nombre_item = self.txt_custom.get().strip()
-        if not nombre_item:
-            messagebox.showwarning("Aviso", "Escribe el nombre del archivo o carpeta a añadir.")
-            return
-        
-        if nombre_item in self.checks_vars:
-            messagebox.showinfo("Información", "Este elemento ya está en la lista.")
-            return
-
-        var = tk.BooleanVar(value=False)
-        self.checks_vars[nombre_item] = {"var": var, "custom": True}
-
-        row_frame = ttk.Frame(self.scrollable_frame)
-        row_frame.pack(anchor="w", fill="x", pady=2)
-
-        chk = ttk.Checkbutton(row_frame, text=f"{nombre_item} (Personalizado)", variable=var)
-        chk.pack(side="left")
-
-        btn_del = ttk.Button(row_frame, text="🗑", width=3, command=lambda: self.eliminar_item_personalizado(nombre_item, row_frame))
-        btn_del.pack(side="right", padx=5)
-
-        self.txt_custom.delete(0, tk.END)
-
-    def eliminar_item_personalizado(self, nombre_item, row_frame):
-        if nombre_item in self.checks_vars:
-            del self.checks_vars[nombre_item]
-        row_frame.destroy()
 
     def obtener_ruta_descargas(self):
         ruta_descargas = None
