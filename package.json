@@ -41,15 +41,7 @@
     "win": {
       "target": [
         {
-          "target": "nsis-web",
-          "arch": ["x64"]
-        },
-        {
-          "target": "nsis",
-          "arch": ["x64"]
-        },
-        {
-          "target": "zip",
+          "target": "nsis-web, nsis, zip",
           "arch": ["x64"]
         }
       ],
