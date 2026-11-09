@@ -6,11 +6,11 @@ import platform
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-# Elementos esenciales de Unity que son obligatorios
-ELEMENTOS_OBLIGATORIOS = ["Assets", "ProjectSettings"]
+# Elementos esenciales y obligatorios de Unity (ahora incluye Packages)
+ELEMENTOS_OBLIGATORIOS = ["Assets", "ProjectSettings", "Packages"]
 
-# Elementos comunes opcionales que se pueden incluir o excluir
-ELEMENTOS_OPCIONALES = ["Packages", "Library", "UserSettings", "Logs", "obj"]
+# Elementos opcionales restantes que se pueden incluir o excluir
+ELEMENTOS_OPCIONALES = ["Library", "UserSettings", "Logs", "obj"]
 
 class UnityZipExporterApp:
     def __init__(self, root):
@@ -94,7 +94,7 @@ class UnityZipExporterApp:
         self.btn_exportar.pack(fill="x", pady=5)
 
     def construir_checklist_inicial(self):
-        # Obligatorios
+        # Obligatorios (Assets, ProjectSettings, Packages bloqueados)
         for item in ELEMENTOS_OBLIGATORIOS:
             var = tk.BooleanVar(value=True)
             self.checks_vars[item] = {"var": var, "custom": False}
@@ -103,7 +103,7 @@ class UnityZipExporterApp:
 
         # Opcionales por defecto
         for item in ELEMENTOS_OPCIONALES:
-            var = tk.BooleanVar(value=True if item in ["Packages", "UserSettings"] else False)
+            var = tk.BooleanVar(value=True if item in ["UserSettings"] else False)
             self.checks_vars[item] = {"var": var, "custom": False}
             chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
             chk.pack(anchor="w", pady=2)
@@ -150,17 +150,24 @@ class UnityZipExporterApp:
         row_frame.destroy()
 
     def obtener_ruta_descargas(self):
+        ruta_descargas = None
         if platform.system() == "Windows":
             import ctypes
             try:
                 SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
                 KNOWN_FOLDER_ID = ctypes.c_wchar_p("{374DE290-123F-4565-9164-39C4925E467B}")
                 p_path = ctypes.c_wchar_p()
-                SHGetKnownFolderPath(KNOWN_FOLDER_ID, 0, None, ctypes.byref(p_path))
-                return p_path.value
-            except:
+                # Intentar obtener la carpeta de descargas del sistema
+                if SHGetKnownFolderPath(KNOWN_FOLDER_ID, 0, None, ctypes.byref(p_path)) == 0:
+                    ruta_descargas = p_path.value
+            except Exception:
                 pass
-        return os.path.join(os.path.expanduser("~"), "Downloads")
+        
+        # Si falló la API o estamos en otro SO, usar el método estándar basado en el usuario
+        if not ruta_descargas:
+            ruta_descargas = os.path.join(os.path.expanduser("~"), "Downloads")
+            
+        return ruta_descargas
 
     def abrir_carpeta(self, ruta):
         sistema = platform.system()
