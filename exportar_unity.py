@@ -6,10 +6,10 @@ import platform
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-# Elementos esenciales y obligatorios de Unity (ahora incluye Packages)
+# Elementos esenciales y obligatorios de Unity
 ELEMENTOS_OBLIGATORIOS = ["Assets", "ProjectSettings", "Packages"]
 
-# Elementos opcionales restantes que se pueden incluir o excluir
+# Elementos opcionales (ahora todos desmarcados por defecto)
 ELEMENTOS_OPCIONALES = ["Library", "UserSettings", "Logs", "obj"]
 
 class UnityZipExporterApp:
@@ -23,7 +23,6 @@ class UnityZipExporterApp:
         self.proyecto_path = tk.StringVar()
         self.nombre_zip_var = tk.StringVar(value="proyecto_unity_exportado")
         self.checks_vars = {} # Almacenará los BooleanVar de cada elemento
-        self.custom_entries = [] # Para almacenar widgets de elementos personalizados
 
         self.crear_interfaz()
 
@@ -45,7 +44,7 @@ class UnityZipExporterApp:
         lbl_info = ttk.Label(self.frame_checklist, text="Los elementos obligatorios no se pueden desmarcar:", font=("Segoe UI", 9, "italic"))
         lbl_info.pack(anchor="w", pady=(0, 5))
 
-        # Contenedor con scroll para los checkboxes por si la lista crece
+        # Contenedor con scroll para los checkboxes
         self.canvas_scroll = tk.Canvas(self.frame_checklist, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self.frame_checklist, orient="vertical", command=self.canvas_scroll.yview)
         self.scrollable_frame = ttk.Frame(self.canvas_scroll)
@@ -94,16 +93,16 @@ class UnityZipExporterApp:
         self.btn_exportar.pack(fill="x", pady=5)
 
     def construir_checklist_inicial(self):
-        # Obligatorios (Assets, ProjectSettings, Packages bloqueados)
+        # Obligatorios (Assets, ProjectSettings, Packages bloqueados y marcados)
         for item in ELEMENTOS_OBLIGATORIOS:
             var = tk.BooleanVar(value=True)
             self.checks_vars[item] = {"var": var, "custom": False}
             chk = ttk.Checkbutton(self.scrollable_frame, text=f"{item} (Obligatorio)", variable=var, state="disabled")
             chk.pack(anchor="w", pady=2)
 
-        # Opcionales por defecto
+        # Opcionales por defecto (todos desmarcados ahora)
         for item in ELEMENTOS_OPCIONALES:
-            var = tk.BooleanVar(value=True if item in ["UserSettings"] else False)
+            var = tk.BooleanVar(value=False)
             self.checks_vars[item] = {"var": var, "custom": False}
             chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
             chk.pack(anchor="w", pady=2)
@@ -130,7 +129,8 @@ class UnityZipExporterApp:
             messagebox.showinfo("Información", "Este elemento ya está en la lista.")
             return
 
-        var = tk.BooleanVar(value=True)
+        # Nuevos extras desmarcados por defecto (False)
+        var = tk.BooleanVar(value=False)
         self.checks_vars[nombre_item] = {"var": var, "custom": True}
 
         row_frame = ttk.Frame(self.scrollable_frame)
@@ -157,17 +157,28 @@ class UnityZipExporterApp:
                 SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
                 KNOWN_FOLDER_ID = ctypes.c_wchar_p("{374DE290-123F-4565-9164-39C4925E467B}")
                 p_path = ctypes.c_wchar_p()
-                # Intentar obtener la carpeta de descargas del sistema
                 if SHGetKnownFolderPath(KNOWN_FOLDER_ID, 0, None, ctypes.byref(p_path)) == 0:
                     ruta_descargas = p_path.value
             except Exception:
                 pass
         
-        # Si falló la API o estamos en otro SO, usar el método estándar basado en el usuario
         if not ruta_descargas:
             ruta_descargas = os.path.join(os.path.expanduser("~"), "Downloads")
             
         return ruta_descargas
+
+    def obtener_ruta_zip_unica(self, directorio_base, nombre_base):
+        """Genera una ruta única añadiendo un número entre paréntesis si el archivo ya existe."""
+        ruta_archivo = os.path.join(directorio_base, f"{nombre_base}.zip")
+        if not os.path.exists(ruta_archivo):
+            return ruta_archivo
+
+        contador = 1
+        while True:
+            ruta_archivo = os.path.join(directorio_base, f"{nombre_base} ({contador}).zip")
+            if not os.path.exists(ruta_archivo):
+                return ruta_archivo
+            contador += 1
 
     def abrir_carpeta(self, ruta):
         sistema = platform.system()
@@ -203,7 +214,8 @@ class UnityZipExporterApp:
             except:
                 dir_descargas = os.getcwd()
 
-        ruta_zip_final = os.path.join(dir_descargas, f"{nombre_zip}.zip")
+        # Obtener ruta de guardado segura con autoincremento si ya existe
+        ruta_zip_final = self.obtener_ruta_zip_unica(dir_descargas, nombre_zip)
 
         elementos_a_incluir = [item for item, datos in self.checks_vars.items() if datos["var"].get()]
 
@@ -216,16 +228,19 @@ class UnityZipExporterApp:
                 for item in elementos_a_incluir:
                     ruta_elemento = os.path.join(dir_proyecto, item)
                     
-                    if os.path.isfile(ruta_elemento):
-                        zipf.write(ruta_elemento, arcname=item)
-                        count_archivos += 1
-                    elif os.path.isdir(ruta_elemento):
-                        for root_dir, dirs, files in os.walk(ruta_elemento):
-                            for file in files:
-                                ruta_completa = os.path.join(root_dir, file)
-                                arcname = os.path.relpath(ruta_completa, dir_proyecto)
-                                zipf.write(ruta_completa, arcname=arcname)
-                                count_archivos += 1
+                    if os.path.exists(ruta_elemento):
+                        if os.path.isfile(ruta_elemento):
+                            # Añadir archivo suelto
+                            zipf.write(ruta_elemento, arcname=item)
+                            count_archivos += 1
+                        elif os.path.isdir(ruta_elemento):
+                            # Añadir carpeta completa recursivamente (incluyendo archivos dentro)
+                            for root_dir, dirs, files in os.walk(ruta_elemento):
+                                for file in files:
+                                    ruta_completa = os.path.join(root_dir, file)
+                                    arcname = os.path.relpath(ruta_completa, dir_proyecto)
+                                    zipf.write(ruta_completa, arcname=arcname)
+                                    count_archivos += 1
 
             messagebox.showinfo(
                 "¡Éxito!", 
