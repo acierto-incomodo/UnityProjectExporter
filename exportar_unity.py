@@ -9,9 +9,6 @@ from tkinter import filedialog, messagebox, ttk
 # Elementos esenciales y obligatorios de Unity
 ELEMENTOS_OBLIGATORIOS = ["Assets", "ProjectSettings", "Packages"]
 
-# Elementos opcionales (ahora todos desmarcados por defecto)
-ELEMENTOS_OPCIONALES = ["Library", "UserSettings", "Logs", "obj"]
-
 class UnityZipExporterApp:
     def __init__(self, root):
         self.root = root
@@ -41,7 +38,7 @@ class UnityZipExporterApp:
         self.frame_checklist = ttk.LabelFrame(self.root, text=" 2. Elementos a Incluir en el .ZIP ", padding=15)
         self.frame_checklist.pack(fill="both", expand=True, padx=15, pady=5)
 
-        lbl_info = ttk.Label(self.frame_checklist, text="Los elementos obligatorios no se pueden desmarcar:", font=("Segoe UI", 9, "italic"))
+        lbl_info = ttk.Label(self.frame_checklist, text="Selecciona una carpeta de proyecto para cargar sus elementos:", font=("Segoe UI", 9, "italic"))
         lbl_info.pack(anchor="w", pady=(0, 5))
 
         # Contenedor con scroll para los checkboxes
@@ -60,8 +57,8 @@ class UnityZipExporterApp:
         self.canvas_scroll.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
-        # Rellenar checklist inicial
-        self.construir_checklist_inicial()
+        # Cargar estado inicial (solo obligatorios vacíos o por defecto)
+        self.cargar_checklist_base()
 
         # --- MARCO AÑADIR PERSONALIZADOS ---
         frame_add = ttk.Frame(self.frame_checklist)
@@ -92,20 +89,41 @@ class UnityZipExporterApp:
         self.btn_exportar = ttk.Button(frame_bottom, text="Exportar a Descargas y Abrir", command=self.exportar_proyecto, state="disabled")
         self.btn_exportar.pack(fill="x", pady=5)
 
-    def construir_checklist_inicial(self):
-        # Obligatorios (Assets, ProjectSettings, Packages bloqueados y marcados)
+    def cargar_checklist_base(self):
+        """Limpia el frame y dibuja solo los elementos obligatorios por defecto."""
+        for widget in self.scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        self.checks_vars.clear()
+
         for item in ELEMENTOS_OBLIGATORIOS:
             var = tk.BooleanVar(value=True)
             self.checks_vars[item] = {"var": var, "custom": False}
             chk = ttk.Checkbutton(self.scrollable_frame, text=f"{item} (Obligatorio)", variable=var, state="disabled")
             chk.pack(anchor="w", pady=2)
 
-        # Opcionales por defecto (todos desmarcados ahora)
-        for item in ELEMENTOS_OPCIONALES:
-            var = tk.BooleanVar(value=False)
-            self.checks_vars[item] = {"var": var, "custom": False}
-            chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
-            chk.pack(anchor="w", pady=2)
+    def actualizar_checklist_desde_proyecto(self, ruta_proyecto):
+        """Escanea la carpeta del proyecto y añade el resto de archivos y carpetas encontrados."""
+        # Limpiar y reconstruir obligatorios primero
+        self.cargar_checklist_base()
+
+        try:
+            # Obtener elementos en la raíz del proyecto seleccionado
+            elementos_encontrados = os.listdir(ruta_proyecto)
+            
+            for item in sorted(elementos_encontrados):
+                # Omitir carpetas ocultas del sistema (como .git) o los obligatorios que ya están puestos
+                if item.startswith(".") or item in ELEMENTOS_OBLIGATORIOS:
+                    continue
+
+                var = tk.BooleanVar(value=False) # Opcionales desmarcados por defecto
+                self.checks_vars[item] = {"var": var, "custom": False}
+
+                chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
+                chk.pack(anchor="w", pady=2)
+
+        except Exception as e:
+            print(f"Error al escanear la carpeta del proyecto: {e}")
 
     def seleccionar_carpeta(self):
         dir_selected = filedialog.askdirectory(title="Selecciona la carpeta raíz del proyecto de Unity")
@@ -115,9 +133,13 @@ class UnityZipExporterApp:
             self.lbl_ruta.config(text=path_mostrar, foreground="black")
             self.btn_exportar.config(state="normal")
             
+            # Autocompletar nombre del zip
             nombre_carpeta = os.path.basename(dir_selected)
             if nombre_carpeta:
                 self.nombre_zip_var.set(f"{nombre_carpeta}_export")
+
+            # Actualizar dinámicamente el checklist con el contenido real de la carpeta
+            self.actualizar_checklist_desde_proyecto(dir_selected)
 
     def agregar_item_personalizado(self):
         nombre_item = self.txt_custom.get().strip()
@@ -129,7 +151,6 @@ class UnityZipExporterApp:
             messagebox.showinfo("Información", "Este elemento ya está en la lista.")
             return
 
-        # Nuevos extras desmarcados por defecto (False)
         var = tk.BooleanVar(value=False)
         self.checks_vars[nombre_item] = {"var": var, "custom": True}
 
@@ -168,7 +189,6 @@ class UnityZipExporterApp:
         return ruta_descargas
 
     def obtener_ruta_zip_unica(self, directorio_base, nombre_base):
-        """Genera una ruta única añadiendo un número entre paréntesis si el archivo ya existe."""
         ruta_archivo = os.path.join(directorio_base, f"{nombre_base}.zip")
         if not os.path.exists(ruta_archivo):
             return ruta_archivo
@@ -214,7 +234,6 @@ class UnityZipExporterApp:
             except:
                 dir_descargas = os.getcwd()
 
-        # Obtener ruta de guardado segura con autoincremento si ya existe
         ruta_zip_final = self.obtener_ruta_zip_unica(dir_descargas, nombre_zip)
 
         elementos_a_incluir = [item for item, datos in self.checks_vars.items() if datos["var"].get()]
@@ -230,11 +249,9 @@ class UnityZipExporterApp:
                     
                     if os.path.exists(ruta_elemento):
                         if os.path.isfile(ruta_elemento):
-                            # Añadir archivo suelto
                             zipf.write(ruta_elemento, arcname=item)
                             count_archivos += 1
                         elif os.path.isdir(ruta_elemento):
-                            # Añadir carpeta completa recursivamente (incluyendo archivos dentro)
                             for root_dir, dirs, files in os.walk(ruta_elemento):
                                 for file in files:
                                     ruta_completa = os.path.join(root_dir, file)
