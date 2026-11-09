@@ -57,7 +57,7 @@ class UnityZipExporterApp:
         self.canvas_scroll.pack(side="left", fill="both", expand=True)
         self.scrollbar.pack(side="right", fill="y")
 
-        # Cargar estado inicial (solo obligatorios vacíos o por defecto)
+        # Cargar estado inicial (solo obligatorios)
         self.cargar_checklist_base()
 
         # --- MARCO AÑADIR PERSONALIZADOS ---
@@ -103,22 +103,41 @@ class UnityZipExporterApp:
             chk.pack(anchor="w", pady=2)
 
     def actualizar_checklist_desde_proyecto(self, ruta_proyecto):
-        """Escanea la carpeta del proyecto y añade el resto de archivos y carpetas encontrados."""
-        # Limpiar y reconstruir obligatorios primero
+        """Escanea la carpeta del proyecto ordenando primero carpetas y luego archivos."""
         self.cargar_checklist_base()
 
         try:
-            # Obtener elementos en la raíz del proyecto seleccionado
             elementos_encontrados = os.listdir(ruta_proyecto)
             
-            for item in sorted(elementos_encontrados):
-                # Omitir carpetas ocultas del sistema (como .git) o los obligatorios que ya están puestos
+            carpetas = []
+            archivos = []
+
+            for item in elementos_encontrados:
+                # Omitir ocultos del sistema y obligatorios ya listados
                 if item.startswith(".") or item in ELEMENTOS_OBLIGATORIOS:
                     continue
+                
+                ruta_completa = os.path.join(ruta_proyecto, item)
+                if os.path.isdir(ruta_completa):
+                    carpetas.append(item)
+                elif os.path.isfile(ruta_completa):
+                    archivos.append(item)
 
-                var = tk.BooleanVar(value=False) # Opcionales desmarcados por defecto
+            # Ordenar alfabéticamente carpetas y archivos por separado
+            carpetas.sort(key=str.lower)
+            archivos.sort(key=str.lower)
+
+            # 1. Renderizar primero las carpetas detectadas
+            for item in carpetas:
+                var = tk.BooleanVar(value=False)
                 self.checks_vars[item] = {"var": var, "custom": False}
+                chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
+                chk.pack(anchor="w", pady=2)
 
+            # 2. Renderizar después los archivos detectados
+            for item in archivos:
+                var = tk.BooleanVar(value=False)
+                self.checks_vars[item] = {"var": var, "custom": False}
                 chk = ttk.Checkbutton(self.scrollable_frame, text=item, variable=var)
                 chk.pack(anchor="w", pady=2)
 
@@ -133,12 +152,10 @@ class UnityZipExporterApp:
             self.lbl_ruta.config(text=path_mostrar, foreground="black")
             self.btn_exportar.config(state="normal")
             
-            # Autocompletar nombre del zip
             nombre_carpeta = os.path.basename(dir_selected)
             if nombre_carpeta:
                 self.nombre_zip_var.set(f"{nombre_carpeta}_export")
 
-            # Actualizar dinámicamente el checklist con el contenido real de la carpeta
             self.actualizar_checklist_desde_proyecto(dir_selected)
 
     def agregar_item_personalizado(self):
